@@ -13,6 +13,7 @@ route("/about", () => import("./screens/about.js"));
 route("/search", () => import("./screens/search.js"));
 route("/place/:id", () => import("./screens/place.js"));
 route("/rate/:id", () => import("./screens/rate.js"));
+route("/places", () => import("./screens/places.js"));
 
 const screen = document.getElementById("screen");
 
