@@ -11,6 +11,7 @@ import { toast } from "./ui.js";
 route("/feed", () => import("./screens/feed.js"));
 route("/about", () => import("./screens/about.js"));
 route("/search", () => import("./screens/search.js"));
+route("/place/:id", () => import("./screens/place.js"));
 
 const screen = document.getElementById("screen");
 
