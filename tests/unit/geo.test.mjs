@@ -15,5 +15,5 @@ test("limitPoints keeps the nearest ones", () => {
 
 test("bbox wraps all points", () => {
   assert.deepEqual(bbox([{ lat: 55.7, lon: 37.5 }, { lat: 55.8, lon: 37.7 }, { lat: 55.75, lon: 37.6 }]),
-    { southWest: [37.5, 55.7], northEast: [37.7, 55.8] });
+    [[55.7, 37.5], [55.8, 37.7]]);
 });

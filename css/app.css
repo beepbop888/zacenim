@@ -131,10 +131,10 @@ button.info-row { width: 100%; padding: 0; background: none; border-width: 0 0 1
 .sheet[hidden] { display: none; }
 
 .map { position: relative; width: calc(100% + 32px); height: 440px; margin: 0 -16px; overflow: hidden; background: var(--surf); }
-.map canvas { filter: saturate(0.3) brightness(1.04); }
+.map [class*="-ground-pane"] { filter: saturate(0.3) brightness(1.04); }
 .map-small { width: 100%; height: 160px; margin: 0; border-radius: 16px; pointer-events: none; }
 .map-note { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; border-radius: 16px; background: var(--surf); }
-.pin { display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; transform: translate(-50%, -50%); cursor: pointer; }
+.pin { position: absolute; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; transform: translate(-50%, -50%); cursor: pointer; }
 .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #FFFFFF; background: var(--brand); box-shadow: 0 1px 3px rgba(9, 22, 26, 0.35); }
 .pin-score { min-width: 38px; height: 28px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--line2); border-radius: 14px; background: #FFFFFF; font: 600 13px/1 var(--sans); font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgba(9, 22, 26, 0.2); }
 .pin-score.good { color: var(--good); }

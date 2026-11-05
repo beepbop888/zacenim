@@ -88,6 +88,8 @@ class SearchTest(AppTest):
         found = int(self.text("#count").split()[1])
         self.assertEqual(self.page.evaluate("window.__map.markers"), min(found, 300))
         self.assertEqual(self.page.evaluate("window.__map.key"), "test-key")
+        lat, lon = self.page.evaluate("window.__map.first")
+        self.assertTrue(55 < lat < 56.5 and 36.5 < lon < 38.5, (lat, lon))
         self.page.locator(".pin").first.dispatch_event("click")
         self.page.wait_for_selector("#picked .row")
         self.shot("search-map")

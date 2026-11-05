@@ -16,6 +16,7 @@ class ShellTest(AppTest):
         self.page.evaluate("window.__tg.settings()")
         self.wait_route("/about")
         self.assertIn("OpenStreetMap", self.text())
+        self.assertIn("Карта: Яндекс", self.text())
         self.assertTrue(self.page.evaluate("Telegram.WebApp.BackButton.isVisible"))
         self.assertTrue(self.page.is_hidden("#tabbar"))
         self.shot("shell-about")

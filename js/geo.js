@@ -23,5 +23,5 @@ export function bbox(points) {
     s = Math.min(s, p.lat);
     n = Math.max(n, p.lat);
   }
-  return { southWest: [w, s], northEast: [e, n] };
+  return [[s, w], [n, e]];
 }

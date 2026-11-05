@@ -23,18 +23,38 @@ CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Aut
         "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS"}
 SEED_TIPS = ("try { for (const p of ['tgcs_', 'zc_']) { if (!localStorage.getItem(p + 'tips_n')) {"
              " localStorage.setItem(p + 'tips_n', '1'); localStorage.setItem(p + 'tips_0', 'true'); } } } catch (e) {}")
-MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", MAPGL_KEY: "test-key", VERSION: "test" };'
-MAPGL_STUB = """
-window.__map = { maps: 0, markers: 0, fits: 0 };
-window.mapgl = {
-  Map: class {
-    constructor(el, opts) { window.__map.maps += 1; window.__map.key = opts.key; this.el = el; }
-    fitBounds() { window.__map.fits += 1; }
-    destroy() {}
+NO_MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "", VERSION: "test" };'
+MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "test-key", VERSION: "test" };'
+YMAPS_STUB = """
+window.__map = { maps: 0, markers: 0, fits: 0, first: null,
+  key: new URL(document.currentScript.src).searchParams.get("apikey") };
+window.ymaps = {
+  ready(cb) { cb(); },
+  templateLayoutFactory: { createClass: (html) => html },
+  Placemark: class {
+    constructor(coords, props, opts) {
+      this.coords = coords;
+      this.layout = opts.iconLayout;
+      this.handlers = [];
+      this.events = { add: (name, f) => this.handlers.push(f) };
+    }
   },
-  HtmlMarker: class {
-    constructor(map, opts) { window.__map.markers += 1; this.html = opts.html; map.el.append(opts.html); }
-    destroy() { this.html.remove(); window.__map.markers -= 1; }
+  Map: class {
+    constructor(el) {
+      window.__map.maps += 1;
+      this.nodes = [];
+      this.geoObjects = { add: (pm) => {
+        const w = document.createElement("div");
+        w.innerHTML = pm.layout;
+        w.firstElementChild.addEventListener("click", () => pm.handlers.forEach((f) => f()));
+        el.append(w);
+        this.nodes.push(w);
+        window.__map.markers += 1;
+        window.__map.first = window.__map.first || pm.coords;
+      } };
+    }
+    setBounds() { window.__map.fits += 1; }
+    destroy() { this.nodes.forEach((n) => n.remove()); window.__map.markers -= this.nodes.length; }
   },
 };
 """
@@ -138,7 +158,8 @@ class AppTest(unittest.TestCase):
         self.context.route("https://telegram.org/js/telegram-web-app.js",
                            lambda r: r.fulfill(status=200, content_type="application/javascript", body=TG_STUB))
         self.context.route(API + "/**", self.api.handle)
-        self.context.route("https://mapgl.2gis.com/**", lambda r: r.abort())
+        self.context.route("https://api-maps.yandex.ru/**", lambda r: r.abort())
+        self.context.route("**/config.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=NO_MAP_CONFIG))
         self.page = self.context.new_page()
         self.page.on("pageerror", lambda e: self.errors.append("pageerror: %s" % e))
         self.page.on("console", self._console)
@@ -229,5 +250,5 @@ class AppTest(unittest.TestCase):
 
     def use_map_key(self):
         self.context.route("**/config.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=MAP_CONFIG))
-        self.context.route("https://mapgl.2gis.com/**",
-                           lambda r: r.fulfill(status=200, content_type="application/javascript", body=MAPGL_STUB))
+        self.context.route("https://api-maps.yandex.ru/**",
+                           lambda r: r.fulfill(status=200, content_type="application/javascript", body=YMAPS_STUB))

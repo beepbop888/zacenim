@@ -13,7 +13,7 @@ export default function about(ctx) {
 <button type="button" class="btn btn-secondary btn-block" data-action="tour">Показать подсказки</button>
 <div class="credits">
 <p class="meta">Данные о местах: © участники OpenStreetMap, лицензия ODbL.</p>
-<p class="meta">Карта и рейтинги мест: 2ГИС.</p>
+<p class="meta">Карта: Яндекс. Рейтинги мест: 2ГИС.</p>
 <p class="meta">Шрифты Lora и Onest: SIL Open Font License.</p>
 <p class="meta">Фото еды: Wikimedia Commons, авторы указаны в README.</p>
 <p class="meta">Версия ${esc(ctx.config.VERSION)}</p>
