@@ -47,7 +47,12 @@ async function boot() {
   window.zc = ctx;
   tg.onSettings(() => go("/about"));
   const deep = new URLSearchParams(location.search).get("place");
-  await start(ctx, deep && /^[nwr]\d+$/.test(deep) ? `/place/${deep}` : "/feed");
+  const linked = Boolean(deep && /^[nwr]\d+$/.test(deep));
+  await start(ctx, linked ? `/place/${deep}` : "/feed");
+  if (!store.state.tipsDone && !linked) {
+    const { startTour } = await import("./tour.js");
+    startTour(ctx);
+  }
 }
 
 tg.init();
