@@ -103,6 +103,7 @@ class FakeApi:
         self.calls = []
         self.rating = {"rating": 9.2, "count": 1234}
         self.scores = None  # the last list the app sent to PUT /api/scores
+        self.logs = []  # what the app reported to POST /api/log
         self.booking = {"status": "site"}
         self.reminders = []
         self.place_names = {}
@@ -132,6 +133,9 @@ class FakeApi:
     def answer(self, method, path, body):
         if path == "/api/rating":
             return 200, self.rating
+        if path == "/api/log" and method == "POST":
+            self.logs.append(json.loads(body.decode("utf-8")))
+            return 204, None
         if path == "/api/scores" and method == "PUT":
             self.scores = json.loads(body.decode("utf-8"))["scores"]
             return 204, None

@@ -7,6 +7,7 @@ import { cloudBackend, localBackend } from "./storage.js";
 import { createStore } from "./store.js";
 import { createScoreSync } from "./scoresync.js";
 import { allScores } from "./rating.js";
+import { setMapReporter } from "./map.js";
 import { route, start, go, back, replace, refresh } from "./router.js";
 import { toast } from "./ui.js";
 
@@ -55,6 +56,7 @@ async function boot() {
     return;
   }
   syncScores();
+  setMapReporter((r) => { api.sendLog({ kind: "map", version: CONFIG.VERSION, ...r }).catch(() => {}); });
   const ctx = {
     data, store, api, tg, config: CONFIG, go, back, replace, refresh,
     search: { text: "", station: null, walk: 10, kind: "all", view: "list", shown: 50 },

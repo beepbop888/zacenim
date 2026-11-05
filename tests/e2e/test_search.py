@@ -1,4 +1,4 @@
-from tests.e2e.harness import AppTest
+from tests.e2e.harness import MAP_CONFIG, AppTest
 
 
 class SearchTest(AppTest):
@@ -131,6 +131,29 @@ class SearchTest(AppTest):
         self.page.evaluate("window.__map.tapMap()")
         self.page.wait_for_selector("#picked", state="hidden")
         self.assertEqual(self.page.locator(".pin.on").count(), 0)
+
+    def test_the_map_reports_how_it_loaded(self):
+        self.use_map_key()
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_function("() => window.__map && window.__map.markers === 300")
+        self.wait_for(lambda: self.api.logs, ms=9000)
+        log = self.api.logs[0]
+        self.assertEqual((log["kind"], log["version"]), ("map", "test"))
+        self.assertIn("pins 300", log["detail"])
+        self.assertRegex(log["detail"], r"box 390x\d+")
+        self.assertIn("tiles 0", log["detail"])
+        self.assertFalse(log["ok"])  # the stub draws no tiles
+
+    def test_a_blocked_map_says_so_and_reports_it(self):
+        self.context.route("**/config.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=MAP_CONFIG))
+        self.context.route("https://api-maps.yandex.ru/**", lambda r: r.abort("addressunreachable"))
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_selector("text=Карта не загрузилась")
+        self.wait_for(lambda: self.api.logs)
+        self.assertFalse(self.api.logs[0]["ok"])
+        self.assertIn("map script failed", self.api.logs[0]["detail"])
 
     def test_place_names_are_text_not_html(self):
         self.inject_venue(["n999999999", '<img src=x onerror="window.__xss=1">', "restaurant", '"><b>жирный</b>',

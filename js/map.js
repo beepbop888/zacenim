@@ -7,6 +7,10 @@ import { limitPoints, bbox } from "./geo.js";
 export const MOSCOW = { lat: 55.7558, lon: 37.6176 };
 const MAX_PINS = 300;
 let loading = null;
+let report = () => {};
+// report({ok, detail}) is told once per map: whether Yandex loaded and how many map tiles drew 5 s later.
+export const setMapReporter = (fn) => { report = fn; };
+const CHECK_AFTER_MS = 5000;
 
 // Makes a box reach from where it starts down to the tab bar, at least 320 px tall.
 export function fillToTabbar(box) {
@@ -59,7 +63,16 @@ function pinHtml(p, selected) {
 // center: {lat, lon} to centre on it, or null to fit all points.
 // At most 300 pins at a time: the ones nearest the middle of the map, picked again after every move.
 export async function mountMap(el, { points, center = null, zoom = 15, selected = null, onPick = null }) {
-  const ymaps = await loadYmaps();
+  const t0 = performance.now();
+  const ms = () => Math.round(performance.now() - t0);
+  let ymaps;
+  try {
+    ymaps = await loadYmaps();
+  } catch (err) {
+    report({ ok: false, detail: `${err.message} after ${ms()} ms; online ${navigator.onLine}` });
+    throw err;
+  }
+  const loadedIn = ms();
   const first = center || limitPoints(points, null, MAX_PINS)[0] || MOSCOW;
   const map = new ymaps.Map(el, { center: [first.lat, first.lon], zoom, controls: [] },
     { suppressMapOpenBlock: true, yandexMapDisablePoiInteractivity: true });
@@ -104,5 +117,20 @@ export async function mountMap(el, { points, center = null, zoom = 15, selected 
     });
   }
   if (!center && points.length <= MAX_PINS && shown.length > 1) map.setBounds(bbox(shown), { checkZoomRange: true, zoomMargin: 48 });
-  return { destroy: () => map.destroy() };
+  let gone = false;
+  const check = setTimeout(() => {
+    if (gone) return;
+    const imgs = [...el.querySelectorAll("img")];
+    const okImgs = imgs.filter((i) => i.complete && i.naturalWidth > 0).length;
+    const canvases = el.querySelectorAll("canvas").length;
+    const drawn = okImgs + canvases;
+    report({ ok: drawn > 0, detail: `loaded in ${loadedIn} ms; box ${el.clientWidth}x${el.clientHeight}; tiles ${drawn} (img ${okImgs}/${imgs.length}, canvas ${canvases}); pins ${shown.length}` });
+  }, CHECK_AFTER_MS);
+  return {
+    destroy: () => {
+      gone = true;
+      clearTimeout(check);
+      map.destroy();
+    },
+  };
 }
