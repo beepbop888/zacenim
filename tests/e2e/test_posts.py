@@ -85,3 +85,15 @@ class PostsTest(AppTest):
         self.page.click("[data-action='post']")
         self.wait_route("/compose/" + pid)
         self.assertIn("Шербет", self.text("#place-box"))
+
+    def test_a_fresh_photo_that_is_not_ready_yet_is_tried_again(self):
+        self.open("/feed")
+        pid = self.place_id("Шербет", "Чистые пруды")
+        self.set_cloud("p", [{"id": "p1", "at": 1, "text": "С фото", "v": pid, "aud": "all", "photo": PHOTO_KEY}])
+        self.api.fail["/api/photos/"] = 404
+        self.reload()
+        self.page.wait_for_timeout(500)
+        del self.api.fail["/api/photos/"]
+        self.page.wait_for_function(
+            "() => { const i = document.querySelector('[data-post=p1] .post-photo'); return i && i.complete && i.naturalWidth > 0; }",
+            timeout=8000)

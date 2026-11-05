@@ -60,9 +60,17 @@ ${v.photo ? `<img class="post-photo" src="${esc(v.photo)}" alt="Фото к по
 </article>`;
 }
 
-// Likes, and photos that fail to load (a throttled network) disappear instead of showing a broken icon.
+// Likes, and photos. A fresh photo can take a moment to reach every server, so a failed one is
+// tried again; if it still fails (a throttled network) it disappears instead of a broken icon.
 export function bindPosts(ctx, el) {
-  el.querySelectorAll(".post-photo").forEach((img) => img.addEventListener("error", () => img.remove()));
+  el.querySelectorAll(".post-photo").forEach((img) => {
+    let tries = 0;
+    img.addEventListener("error", () => {
+      tries += 1;
+      if (tries > 2) img.remove();
+      else setTimeout(() => { img.src = `${img.src.split("?")[0]}?try=${tries}`; }, 2000);
+    });
+  });
   el.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-like]");
     if (!b) return;

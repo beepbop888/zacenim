@@ -26,7 +26,17 @@ class PlaceTest(AppTest):
         self.page.wait_for_selector("text=пока нет оценок")
         self.api.fail["/api/rating"] = 500
         self.reload()
-        self.page.wait_for_selector("text=не загрузилось")
+        self.page.wait_for_selector("#others-sub:has-text('Сервер не отвечает')")
+        del self.api.fail["/api/rating"]
+        self.api.rating = {"rating": 8.8, "count": 87}
+        self.page.click("[data-action='retry-rating']")
+        self.page.wait_for_selector("#others-badge .score.good")
+        self.assertIn("8,8", self.text("#others-badge"))
+
+    def test_an_expired_session_says_reopen_from_telegram(self):
+        self.api.fail["/api/rating"] = 401
+        self.open_sherbet()
+        self.page.wait_for_selector("#others-sub:has-text('Открой «Заценим» заново из Telegram')")
 
     def test_want_toggles_and_survives_reload(self):
         self.open_sherbet()

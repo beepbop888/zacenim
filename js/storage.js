@@ -30,9 +30,14 @@ export function localBackend(prefix = "zc_") {
   };
 }
 
-export function cloudBackend(cs) {
+export function cloudBackend(cs, timeoutMs = 8000) {
   const call = (fn) => new Promise((resolve, reject) => {
-    fn((err, value) => (err ? reject(new Error(String(err))) : resolve(value)));
+    const timer = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+    fn((err, value) => {
+      clearTimeout(timer);
+      if (err) reject(new Error(String(err)));
+      else resolve(value);
+    });
   });
   return {
     async get(k) {
@@ -46,20 +51,26 @@ export function cloudBackend(cs) {
 
 export function createStorage(backend) {
   return {
-    async loadJSON(key, fallback) {
-      try {
-        const n = Number(await backend.get(`${key}_n`));
-        if (!n) return fallback;
-        let s = "";
-        for (let i = 0; i < n; i += 1) {
-          const part = await backend.get(`${key}_${i}`);
-          if (part === null) return fallback;
-          s += part;
-        }
-        return JSON.parse(s);
-      } catch {
-        return fallback;
+    // Backend errors reach the caller: "could not read" must never look like "nothing saved".
+    // {value} if readable, {} if nothing is saved, {broken: true} if saved data does not parse.
+    async readJSON(key) {
+      const n = Number(await backend.get(`${key}_n`));
+      if (!n) return {};
+      let s = "";
+      for (let i = 0; i < n; i += 1) {
+        const part = await backend.get(`${key}_${i}`);
+        if (part === null) return { broken: true };
+        s += part;
       }
+      try {
+        return { value: JSON.parse(s) };
+      } catch {
+        return { broken: true };
+      }
+    },
+    async loadJSON(key, fallback) {
+      const { value } = await this.readJSON(key);
+      return value === undefined ? fallback : value;
     },
     async saveJSON(key, value) {
       const s = JSON.stringify(value);

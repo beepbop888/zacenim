@@ -3,23 +3,45 @@ import { createStorage } from "./storage.js";
 import { emptyRatings, insertRating, removeRating, findRating, leagueOf } from "./rating.js";
 
 export function createStore(primary, fallbackBackend, onFallback = () => {}) {
-  let storage = createStorage(primary);
+  const cloud = createStorage(primary);
+  const device = fallbackBackend ? createStorage(fallbackBackend) : null;
+  let storage = cloud;
   let fellBack = false;
   const state = { ratings: emptyRatings(), want: [], posts: [], comments: {}, likes: [], tipsDone: false };
+
+  const entries = () => [["r", state.ratings], ["w", state.want], ["p", state.posts],
+    ["c", state.comments], ["l", state.likes], ["tips", state.tipsDone]];
+  const saveAll = (to) => Promise.all(entries().map(([k, v]) => to.saveJSON(k, v)));
+
+  function apply(r, w, p, c, l, t) {
+    state.ratings = r ? { ...emptyRatings(), ...r } : emptyRatings();
+    state.want = Array.isArray(w) ? w : [];
+    state.posts = Array.isArray(p) ? p : [];
+    state.comments = c && typeof c === "object" ? c : {};
+    state.likes = Array.isArray(l) ? l : [];
+    state.tipsDone = t === true;
+  }
+
+  async function read(from, key, fallback) {
+    const got = await from.readJSON(key);
+    if (got.broken && device && from !== device) return device.loadJSON(key, fallback);
+    return got.value === undefined ? fallback : got.value;
+  }
+
+  const readAll = async (from) => Promise.all([read(from, "r", null), read(from, "w", []), read(from, "p", []),
+    read(from, "c", {}), read(from, "l", []), read(from, "tips", false)]);
 
   async function save(key, value) {
     try {
       await storage.saveJSON(key, value);
+      if (device && storage !== device) await device.saveJSON(key, value).catch(() => {});
     } catch (err) {
-      if (fellBack || !fallbackBackend) throw err;
+      if (fellBack || !device) throw err;
       fellBack = true;
-      storage = createStorage(fallbackBackend);
+      storage = device;
+      await fallbackBackend.set("pending", "1");
       onFallback();
-      await storage.saveJSON(key, value);
-      await Promise.all([
-        storage.saveJSON("r", state.ratings), storage.saveJSON("w", state.want), storage.saveJSON("p", state.posts),
-        storage.saveJSON("c", state.comments), storage.saveJSON("l", state.likes), storage.saveJSON("tips", state.tipsDone),
-      ]);
+      await saveAll(device);
     }
   }
 
@@ -28,16 +50,19 @@ export function createStore(primary, fallbackBackend, onFallback = () => {}) {
   return {
     state,
     async load() {
-      const [r, w, p, c, l, t] = await Promise.all([
-        storage.loadJSON("r", null), storage.loadJSON("w", []), storage.loadJSON("p", []),
-        storage.loadJSON("c", {}), storage.loadJSON("l", []), storage.loadJSON("tips", false),
-      ]);
-      state.ratings = r ? { ...emptyRatings(), ...r } : emptyRatings();
-      state.want = Array.isArray(w) ? w : [];
-      state.posts = Array.isArray(p) ? p : [];
-      state.comments = c && typeof c === "object" ? c : {};
-      state.likes = Array.isArray(l) ? l : [];
-      state.tipsDone = t === true;
+      // The last session could not save to Telegram: the device copy is the newest one.
+      if (device && await fallbackBackend.get("pending")) {
+        apply(...await readAll(device));
+        try {
+          await saveAll(cloud);
+          await fallbackBackend.remove(["pending"]);
+        } catch {
+          fellBack = true;
+          storage = device;
+        }
+        return;
+      }
+      apply(...await readAll(cloud));
     },
     rating(id) { return findRating(state.ratings, id); },
     async rate(id, kind, group, pos) {

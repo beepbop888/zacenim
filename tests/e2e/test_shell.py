@@ -52,3 +52,33 @@ class ShellTest(AppTest):
         self.page.click("#retry")
         self.page.wait_for_selector("body[data-ready='1']")
         self.wait_route("/feed")
+
+    def test_saved_data_failure_offers_retry_and_keeps_the_data(self):
+        self.open("/feed")
+        rid = self.ids_of_kind("restaurant", 1)
+        self.set_cloud("r", {"rest": {"fire": rid, "ok": [], "miss": []}})
+        self.page.add_init_script("window.__tgCloudReadBroken = true;")
+        self.page.reload()
+        self.page.wait_for_selector("#retry")
+        self.assertIn("Не удалось загрузить твои данные", self.text())
+        self.assertEqual(self.cloud("r")["rest"]["fire"], rid)
+        self.page.evaluate("window.__tgCloudReadBroken = false")
+        self.page.click("#retry")
+        self.page.wait_for_selector("body[data-ready='1']")
+        self.assertEqual(self.page.evaluate("id => window.zc.store.rating(id).place", rid[0]), 1)
+
+    def test_a_failed_save_survives_the_next_launch(self):
+        self.open("/feed")
+        pid = self.place_id("Шербет", "Чистые пруды")
+        self.page.evaluate("window.__tgCloudBroken = true")
+        self.go("/rate/" + pid)
+        self.page.click("[data-group='ok']")
+        self.page.wait_for_selector("text=Готово, оценку запомнили")
+        self.assertIn("Не удалось сохранить в Telegram", self.text(".toast"))
+        self.page.reload()
+        self.page.wait_for_selector("body[data-ready='1']")
+        self.assertEqual(self.page.evaluate("id => window.zc.store.rating(id).group", pid), "ok")
+        self.wait_cloud_rating(pid)
+
+    def wait_cloud_rating(self, pid):
+        self.assertEqual(self.cloud("r")["rest"]["ok"], [pid])

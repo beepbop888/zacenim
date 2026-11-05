@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { memoryBackend, createStorage, CHUNK } from "../../js/storage.js";
+import { memoryBackend, createStorage, cloudBackend, CHUNK } from "../../js/storage.js";
 import { createStore } from "../../js/store.js";
 
 test("round trip of a value larger than one chunk", async () => {
@@ -65,4 +65,57 @@ test("a failing primary storage falls back to the device and says so", async () 
   await fromDevice.load();
   assert.equal(fromDevice.rating("n9").league, "bar");
   assert.equal(fromDevice.isWant("n8"), true);
+});
+
+function failingReads(backend) {
+  return { ...backend, async get() { throw new Error("network"); } };
+}
+
+test("a read error reaches the caller instead of looking like an empty account", async () => {
+  const backend = memoryBackend();
+  const store = createStore(backend, null);
+  await store.load();
+  await store.rate("n1", "restaurant", "fire", 0);
+  const flaky = createStore(failingReads(backend), null);
+  await assert.rejects(flaky.load(), /network/);
+});
+
+test("the device copy is read next launch after a failed save, then returns to the cloud", async () => {
+  const cloud = memoryBackend();
+  const device = memoryBackend();
+  const realSet = cloud.set;
+  cloud.set = async () => { throw new Error("quota"); };
+  const first = createStore(cloud, device, () => {});
+  await first.load();
+  await first.rate("n9", "bar", "ok", 0);
+
+  const stillBroken = createStore(cloud, device, () => {});
+  await stillBroken.load();
+  assert.equal(stillBroken.rating("n9").league, "bar");
+
+  cloud.set = realSet;
+  const healed = createStore(cloud, device, () => {});
+  await healed.load();
+  assert.equal(healed.rating("n9").league, "bar");
+  assert.equal(await device.get("pending"), null);
+  const cloudOnly = createStore(cloud, null);
+  await cloudOnly.load();
+  assert.equal(cloudOnly.rating("n9").league, "bar");
+});
+
+test("unreadable cloud data is restored from the device copy, not replaced by nothing", async () => {
+  const cloud = memoryBackend();
+  const device = memoryBackend();
+  const store = createStore(cloud, device, () => {});
+  await store.load();
+  await store.rate("n1", "restaurant", "fire", 0);
+  await cloud.set("r_0", "{half a write");
+  const again = createStore(cloud, device, () => {});
+  await again.load();
+  assert.equal(again.rating("n1").league, "rest");
+});
+
+test("Telegram storage that never answers gives up", async () => {
+  const silent = { getItem() {}, setItem() {}, removeItems() {} };
+  await assert.rejects(cloudBackend(silent, 20).get("r_n"), /timeout/);
 });

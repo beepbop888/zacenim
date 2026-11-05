@@ -5,6 +5,7 @@ const at = (v) => Boolean(W()?.isVersionAtLeast?.(v));
 export const inTelegram = () => Boolean(W()?.initData);
 export const initData = () => W()?.initData || "";
 export const firstName = () => W()?.initDataUnsafe?.user?.first_name || "";
+export const userId = () => W()?.initDataUnsafe?.user?.id || "";
 
 export function init() {
   const w = W();

@@ -1,5 +1,6 @@
 // One place: your score and everyone else's, actions, details and a small map.
 import { esc, ICON, scoreBadge, emptyScore, metroLine, kindLine, notFound, toast } from "../ui.js";
+import { errorText } from "../api.js";
 import { mapAvailable, mountMap } from "../map.js";
 
 const hostOf = (url) => {
@@ -46,17 +47,23 @@ ${mapAvailable() ? '<div class="map map-small" id="place-map"></div>' : ""}`,
     bind(el) {
       const badge = el.querySelector("#others-badge");
       const sub = el.querySelector("#others-sub");
-      ctx.api.getRating(id).then((r) => {
-        if (!alive) return;
-        if (r && typeof r.rating === "number") {
-          badge.innerHTML = scoreBadge(r.rating, "l");
-          sub.textContent = `по отзывам 2ГИС, ${Number(r.count || 0).toLocaleString("ru-RU")}`;
-        } else {
-          sub.textContent = "пока нет оценок";
-        }
-      }).catch(() => {
-        if (alive) sub.textContent = "не загрузилось";
-      });
+      function loadRating() {
+        sub.textContent = "Загружаем…";
+        ctx.api.getRating(id).then((r) => {
+          if (!alive) return;
+          if (r && typeof r.rating === "number") {
+            badge.innerHTML = scoreBadge(r.rating, "l");
+            sub.textContent = `по отзывам 2ГИС, ${Number(r.count || 0).toLocaleString("ru-RU")}`;
+          } else {
+            sub.textContent = "пока нет оценок";
+          }
+        }).catch((err) => {
+          if (!alive) return;
+          sub.innerHTML = `${esc(errorText(err))}<br><button type="button" class="btn btn-link" data-action="retry-rating">Повторить</button>`;
+          sub.querySelector("button").addEventListener("click", loadRating);
+        });
+      }
+      loadRating();
       el.querySelector("[data-action='want']").addEventListener("click", async (e) => {
         const b = e.currentTarget;
         const on = await ctx.store.toggleWant(id);

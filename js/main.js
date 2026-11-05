@@ -25,20 +25,30 @@ route("/chat", () => import("./screens/chat.js"));
 
 const screen = document.getElementById("screen");
 
+function failed(what) {
+  screen.innerHTML = `<div class="empty"><p class="h2">Не удалось загрузить ${what}</p><p class="muted">Проверь интернет и попробуй ещё раз.</p><button type="button" class="btn btn-secondary" id="retry">Повторить</button></div>`;
+  document.getElementById("retry").addEventListener("click", boot, { once: true });
+}
+
 async function boot() {
   screen.innerHTML = '<p class="muted" role="status">Загружаем места…</p>';
   let data;
   try {
     data = await loadData();
   } catch {
-    screen.innerHTML = '<div class="empty"><p class="h2">Не удалось загрузить места</p><p class="muted">Проверь интернет и попробуй ещё раз.</p><button type="button" class="btn btn-secondary" id="retry">Повторить</button></div>';
-    document.getElementById("retry").addEventListener("click", boot, { once: true });
+    failed("места");
     return;
   }
   const cloud = tg.cloudStorage();
-  const store = createStore(cloud ? cloudBackend(cloud) : localBackend(), cloud ? localBackend() : null,
+  // The device copy is per Telegram account: one phone can hold several.
+  const store = createStore(cloud ? cloudBackend(cloud) : localBackend(), cloud ? localBackend(`zc${tg.userId()}_`) : null,
     () => toast("Не удалось сохранить в Telegram, сохранили на этом устройстве"));
-  await store.load();
+  try {
+    await store.load();
+  } catch {
+    failed("твои данные");
+    return;
+  }
   const ctx = {
     data, store, api, tg, config: CONFIG, go, back, replace, refresh,
     search: { text: "", station: null, walk: 10, kind: "all", view: "list", shown: 50 },

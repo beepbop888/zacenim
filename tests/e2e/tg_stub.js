@@ -38,7 +38,10 @@
       openLink(url) { calls.push(`openLink:${url}`); },
       requestWriteAccess(cb) { calls.push("requestWriteAccess"); cb(window.__tgWriteAllowed !== false); },
       CloudStorage: {
-        getItem(k, cb) { cb(null, localStorage.getItem(key(k)) ?? ""); },
+        getItem(k, cb) {
+          if (window.__tgCloudReadBroken) { cb("CLOUD_READ_FAILED"); return; }
+          cb(null, localStorage.getItem(key(k)) ?? "");
+        },
         setItem(k, v, cb) {
           if (window.__tgCloudBroken) { cb("STORAGE_KEY_CLOUD_FULL"); return; }
           localStorage.setItem(key(k), v);
