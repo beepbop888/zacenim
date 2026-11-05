@@ -80,3 +80,12 @@ export function leagueList(ratings, league) {
   }
   return out;
 }
+
+// Every rated place with its current score, for «У остальных» on the server: {placeId: score}.
+export function allScores(ratings) {
+  const out = {};
+  for (const league of Object.keys(LEAGUE_NAMES)) {
+    for (const { id, score } of leagueList(ratings, league)) out[id] = score;
+  }
+  return out;
+}

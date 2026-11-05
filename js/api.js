@@ -34,6 +34,7 @@ export async function call(path, { method = "GET", body, raw = false, timeout = 
 
 const q = encodeURIComponent;
 export const getRating = (id) => call(`/api/rating?id=${q(id)}`);
+export const putScores = (scores) => call("/api/scores", { method: "PUT", body: { scores } });
 export const getBooking = (id) => call(`/api/booking?id=${q(id)}`);
 export const listReminders = () => call("/api/reminders");
 export const addReminder = (place, at) => call("/api/reminders", { method: "POST", body: { place, at } });

@@ -8,6 +8,7 @@ import http.server
 import json
 import os
 import threading
+import time
 import unittest
 from urllib.parse import parse_qs, urlparse
 
@@ -20,7 +21,7 @@ BASE = "http://127.0.0.1:%d/" % PORT
 API = "http://127.0.0.1:8787"
 SHOTS = os.path.join(APP, "tests", "screenshots")
 CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS"}
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"}
 SEED_TIPS = ("try { for (const p of ['tgcs_', 'zc_']) { if (!localStorage.getItem(p + 'tips_n')) {"
              " localStorage.setItem(p + 'tips_n', '1'); localStorage.setItem(p + 'tips_0', 'true'); } } } catch (e) {}")
 NO_MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "", VERSION: "test" };'
@@ -84,6 +85,7 @@ class FakeApi:
     def __init__(self):
         self.calls = []
         self.rating = {"rating": 9.2, "count": 1234}
+        self.scores = None  # the last list the app sent to PUT /api/scores
         self.booking = {"status": "site"}
         self.reminders = []
         self.place_names = {}
@@ -113,6 +115,9 @@ class FakeApi:
     def answer(self, method, path, body):
         if path == "/api/rating":
             return 200, self.rating
+        if path == "/api/scores" and method == "PUT":
+            self.scores = json.loads(body.decode("utf-8"))["scores"]
+            return 204, None
         if path == "/api/booking":
             return 200, self.booking
         if path == "/api/reminders" and method == "GET":
@@ -187,6 +192,14 @@ class AppTest(unittest.TestCase):
 
     def wait_route(self, path):
         self.page.wait_for_function("p => document.body.dataset.route === p", arg=path, timeout=10000)
+
+    def wait_for(self, check, ms=5000):
+        """Polls a Python condition (for example on what the fake server received) while the page runs."""
+        deadline = time.time() + ms / 1000
+        while not check():
+            if time.time() > deadline:
+                self.fail("condition not met in %d ms" % ms)
+            self.page.wait_for_timeout(50)
 
     def go(self, path):
         self.page.evaluate("p => { location.hash = '#' + p; }", path)

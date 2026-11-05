@@ -7,7 +7,7 @@
 - `data/venues.json`, `data/stations.json`: © участники OpenStreetMap, лицензия ODbL 1.0 (https://opendatacommons.org/licenses/odbl/). Выгрузка 2026-10-04.
 - Шрифты Lora и Onest: SIL Open Font License 1.1, тексты лицензий в `fonts/`.
 - Фото в `img/` с Wikimedia Commons: хинкали, Sandra C, CC BY-SA 2.0; хачапури, Bestalex, CC0; пицца, Bex Walton, CC BY 2.0. Фото для примера, они не из этих заведений.
-- Карта: Яндекс. Рейтинги мест: 2ГИС.
+- Карта: Яндекс.
 
 ## Локально
 

@@ -2,7 +2,8 @@
 import { createStorage } from "./storage.js";
 import { emptyRatings, insertRating, removeRating, findRating, leagueOf } from "./rating.js";
 
-export function createStore(primary, fallbackBackend, onFallback = () => {}) {
+// onRatings() runs after every saved change to the ratings.
+export function createStore(primary, fallbackBackend, onFallback = () => {}, onRatings = () => {}) {
   const cloud = createStorage(primary);
   const device = fallbackBackend ? createStorage(fallbackBackend) : null;
   let storage = cloud;
@@ -68,10 +69,12 @@ export function createStore(primary, fallbackBackend, onFallback = () => {}) {
     async rate(id, kind, group, pos) {
       state.ratings = insertRating(state.ratings, leagueOf(kind), group, id, pos);
       await save("r", state.ratings);
+      onRatings();
     },
     async unrate(id) {
       state.ratings = removeRating(state.ratings, id);
       await save("r", state.ratings);
+      onRatings();
     },
     isWant(id) { return state.want.includes(id); },
     async toggleWant(id) {

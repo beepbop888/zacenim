@@ -33,7 +33,7 @@ class TourTest(AppTest):
         self.page.wait_for_function("() => localStorage.getItem('tgcs_tips_0') === 'true'")
 
     def test_spotlight_follows_its_target_when_the_page_shifts(self):
-        # Reminders and 2GIS ratings arrive after the tip is drawn and push the target down.
+        # Reminders and «У остальных» arrive after the tip is drawn and push the target down.
         self.open("/feed", tips_done=False)
         self.page.click("[data-tour-action='next']")
         self.page.wait_for_selector("text=Подсказка 1 из 9")

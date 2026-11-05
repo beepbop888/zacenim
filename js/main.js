@@ -5,6 +5,8 @@ import * as api from "./api.js";
 import { loadData } from "./data.js";
 import { cloudBackend, localBackend } from "./storage.js";
 import { createStore } from "./store.js";
+import { createScoreSync } from "./scoresync.js";
+import { allScores } from "./rating.js";
 import { route, start, go, back, replace, refresh } from "./router.js";
 import { toast } from "./ui.js";
 
@@ -41,14 +43,18 @@ async function boot() {
   }
   const cloud = tg.cloudStorage();
   // The device copy is per Telegram account: one phone can hold several.
-  const store = createStore(cloud ? cloudBackend(cloud) : localBackend(), cloud ? localBackend(`zc${tg.userId()}_`) : null,
-    () => toast("Не удалось сохранить в Telegram, сохранили на этом устройстве"));
+  const device = localBackend(`zc${tg.userId()}_`);
+  // «У остальных» on other people's screens: our scores go to the server after each change and on launch.
+  const syncScores = createScoreSync(api.putScores, device, () => allScores(store.state.ratings));
+  const store = createStore(cloud ? cloudBackend(cloud) : localBackend(), cloud ? device : null,
+    () => toast("Не удалось сохранить в Telegram, сохранили на этом устройстве"), () => { syncScores(); });
   try {
     await store.load();
   } catch {
     failed("твои данные");
     return;
   }
+  syncScores();
   const ctx = {
     data, store, api, tg, config: CONFIG, go, back, replace, refresh,
     search: { text: "", station: null, walk: 10, kind: "all", view: "list", shown: 50 },

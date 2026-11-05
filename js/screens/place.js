@@ -1,4 +1,5 @@
 // One place: your score and everyone else's, actions, details and a small map.
+import { plural } from "../format.js";
 import { esc, ICON, scoreBadge, emptyScore, metroLine, kindLine, notFound, toast } from "../ui.js";
 import { errorText } from "../api.js";
 import { mapAvailable, mountMap } from "../map.js";
@@ -53,9 +54,12 @@ ${mapAvailable() ? '<div class="map map-small" id="place-map"></div>' : ""}`,
           if (!alive) return;
           if (r && typeof r.rating === "number") {
             badge.innerHTML = scoreBadge(r.rating, "l");
-            sub.textContent = `по отзывам 2ГИС, ${Number(r.count || 0).toLocaleString("ru-RU")}`;
+            // The server gives the count only above 100 ratings.
+            sub.textContent = r.count
+              ? `${r.count.toLocaleString("ru-RU")} ${plural(r.count, "оценка", "оценки", "оценок")} в Заценим`
+              : "средний балл в Заценим";
           } else {
-            sub.textContent = "пока нет оценок";
+            sub.textContent = "пока мало оценок";
           }
         }).catch((err) => {
           if (!alive) return;

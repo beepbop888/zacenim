@@ -12,7 +12,7 @@ class PlaceTest(AppTest):
         self.page.wait_for_selector("#others-badge .score.good")
         t = self.text()
         for part in ("Шербет", "Ресторан", "Чистые пруды, 4 мин пешком", "Твой балл", "Ещё не оценено", "У остальных",
-                     "9,2", "по отзывам 2ГИС, 1 234", "круглосуточно", "Забронировать", "Напомнить", "Написать пост"):
+                     "9,2", "1 234 оценки в Заценим", "круглосуточно", "Забронировать", "Напомнить", "Написать пост"):
             self.assertIn(part, t)
         self.assertTrue(self.page.evaluate("Telegram.WebApp.BackButton.isVisible"))
         call = [c for c in self.api.calls if c["path"] == "/api/rating"][0]
@@ -20,15 +20,23 @@ class PlaceTest(AppTest):
         self.assertTrue(call["auth"].startswith("tma query_id=TEST"))
         self.shot("place")
 
-    def test_no_rating_and_a_failed_rating(self):
-        self.api.rating = {"rating": None, "count": 0}
+    def test_the_count_shows_only_above_100(self):
+        self.api.rating = {"rating": 7.4, "count": None}
         self.open_sherbet()
-        self.page.wait_for_selector("text=пока нет оценок")
+        self.page.wait_for_selector("#others-badge .score.good")
+        self.assertEqual(self.text("#others-sub"), "средний балл в Заценим")
+        self.assertNotIn("оцен", self.text("#others-sub"))
+
+    def test_no_rating_and_a_failed_rating(self):
+        self.api.rating = {"rating": None, "count": None}
+        self.open_sherbet()
+        self.page.wait_for_selector("text=пока мало оценок")
+        self.assertEqual(self.text("#others-badge"), "—")
         self.api.fail["/api/rating"] = 500
         self.reload()
         self.page.wait_for_selector("#others-sub:has-text('Сервер не отвечает')")
         del self.api.fail["/api/rating"]
-        self.api.rating = {"rating": 8.8, "count": 87}
+        self.api.rating = {"rating": 8.8, "count": None}
         self.page.click("[data-action='retry-rating']")
         self.page.wait_for_selector("#others-badge .score.good")
         self.assertIn("8,8", self.text("#others-badge"))

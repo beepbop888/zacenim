@@ -67,3 +67,12 @@ test("insert, find, re-rate and remove", () => {
   assert.equal(findRating(r, "a"), null);
   assert.deepEqual(leagueList(r, "rest").map((x) => x.id), ["c", "b"]);
 });
+
+test("all scores: every rated place with its current score", async () => {
+  const { allScores } = await import("../../js/rating.js");
+  let r = insertRating(emptyRatings(), "rest", "fire", "n1", 0);
+  r = insertRating(r, "rest", "fire", "n2", 1);
+  r = insertRating(r, "bar", "miss", "n3", 0);
+  assert.deepEqual(allScores(r), { n1: scoreAt("fire", 0, 2), n2: scoreAt("fire", 1, 2), n3: 1.7 });
+  assert.deepEqual(allScores(emptyRatings()), {});
+});

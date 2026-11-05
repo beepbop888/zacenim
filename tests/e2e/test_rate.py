@@ -24,7 +24,21 @@ class RateTest(AppTest):
         self.assertIn("1-е место из 1 в лиге «Рестораны»", self.text())
         self.assertIn("notify:success", self.tg_calls())
         self.assertEqual(self.cloud("r")["rest"]["ok"], [self.pid])
+        self.wait_for(lambda: self.api.scores == {self.pid: 5.0})
         self.shot("rate-done")
+
+    def test_scores_go_to_the_server_on_launch_and_after_each_change(self):
+        self.open("/feed")
+        a, b = self.ids_of_kind("restaurant", 2)
+        self.set_cloud("r", {"rest": {"fire": [a], "ok": [], "miss": [b]}})
+        self.reload()
+        self.wait_for(lambda: self.api.scores == {a: 8.4, b: 1.7})
+        sent = len([c for c in self.api.calls if c["path"] == "/api/scores"])
+        self.reload()
+        self.page.wait_for_timeout(500)
+        self.assertEqual(len([c for c in self.api.calls if c["path"] == "/api/scores"]), sent)
+        self.page.evaluate("id => window.zc.store.unrate(id)", b)
+        self.wait_for(lambda: self.api.scores == {a: 8.4})
 
     def test_better_than_all_seven_takes_three_comparisons(self):
         self.begin(fire_count=7)
