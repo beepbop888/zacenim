@@ -59,7 +59,9 @@ export function startTour(ctx) {
     Object.assign(spot.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
     const below = r.bottom + pad + 12;
     const h = card.offsetHeight;
-    card.style.top = below + h < window.innerHeight - 8 ? `${below}px` : `${Math.max(8, r.top - pad - 12 - h)}px`;
+    const above = r.top - pad - 12 - h;
+    // A target too tall for the card on either side: keep its top visible, cover its bottom.
+    card.style.top = `${below + h < window.innerHeight - 8 ? below : above >= 8 ? above : window.innerHeight - h - 8}px`;
   }
 
   function end(goHome = true) {

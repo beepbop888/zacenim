@@ -11,8 +11,9 @@ export default function book(ctx, { id }) {
     ? `<a class="btn btn-secondary btn-block" href="tel:${esc(phone.replace(/[^+\d]/g, ""))}">${ICON.phone}<span>Позвонить</span></a>` : "";
   const site = website
     ? `<button type="button" class="btn btn-secondary btn-block" data-action="site">${ICON.globe}<span>Сайт</span></button>` : "";
-  const none = `<h2 class="h2">${who} пока нет онлайн-брони</h2><p class="muted">${
-    phone || website ? "Позвони или загляни на сайт." : "Контактов в базе нет."}</p>${call}${site}`;
+  const hint = phone && website ? "Позвони или загляни на сайт." : phone ? "Позвони, чтобы забронировать."
+    : website ? "Загляни на сайт." : "Контактов в базе нет.";
+  const none = `<h2 class="h2">${who} пока нет онлайн-брони</h2><p class="muted">${hint}</p>${call}${site}`;
   const checking = '<p class="muted" role="status">Проверяем сайт…</p>';
   let alive = true;
   let url = null;

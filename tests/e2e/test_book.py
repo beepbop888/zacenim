@@ -10,6 +10,8 @@ class BookTest(AppTest):
     def test_no_website_means_no_online_booking(self):
         self.open_place("Twins Garden", "Чеховская")
         self.assertIn("У этого ресторана пока нет онлайн-брони", self.text())
+        self.assertIn("Позвони, чтобы забронировать.", self.text())
+        self.assertNotIn("сайт", self.text().lower())
         tel = self.page.get_attribute("a[href^='tel:']", "href")
         self.assertRegex(tel, r"^tel:\+?\d+$")
         self.assertEqual([c for c in self.api.calls if c["path"] == "/api/booking"], [])

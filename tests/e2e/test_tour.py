@@ -44,6 +44,15 @@ class TourTest(AppTest):
                            "document.createElement('div'), {style: 'height: 120px'}))")
         self.page.wait_for_function(SPOT_COVERS_TARGET, timeout=2000)
 
+    def test_first_tip_leaves_the_post_header_visible(self):
+        self.open("/feed", tips_done=False)
+        self.page.click("[data-tour-action='next']")
+        self.page.wait_for_selector("text=Подсказка 1 из 9")
+        self.page.wait_for_function(SPOT_COVERS_TARGET, timeout=2000)
+        card = self.page.locator(".tour-card").bounding_box()
+        head = self.page.locator("[data-tour='feed'] .post-head").bounding_box()
+        self.assertTrue(card["y"] >= head["y"] + head["height"] or card["y"] + card["height"] <= head["y"], (card, head))
+
     def test_about_reopens_the_tips(self):
         self.open("/about")
         self.page.click("[data-action='tour']")

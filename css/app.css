@@ -29,7 +29,8 @@ body.no-tabs #screen { padding-bottom: calc(24px + env(safe-area-inset-bottom));
 .strong { font-weight: 600; }
 .sub { font-size: 15px; line-height: 21px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.demo-tag { font-size: 12px; font-weight: 600; color: var(--ink2); }
+.demo-tag { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); }
+.list > .demo-tag { margin: 12px 0 0; }
 
 .score { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--line2); background: var(--bg); font-weight: 600; font-variant-numeric: tabular-nums; }
 .score-m { width: 40px; height: 40px; font-size: 14px; }
@@ -59,7 +60,7 @@ body.no-tabs #screen { padding-bottom: calc(24px + env(safe-area-inset-bottom));
 .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .tab { height: 44px; display: flex; align-items: center; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 15px; font-weight: 600; color: var(--ink2); }
 .tab.on { color: var(--ink); border-color: var(--ink); }
-.seg { display: inline-flex; border: 1.5px solid var(--line2); border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+.seg { display: inline-flex; align-self: flex-start; border: 1.5px solid var(--line2); border-radius: 12px; overflow: hidden; flex-shrink: 0; }
 .seg > a, .seg > button { height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; background: var(--bg); border: 0; }
 .seg > .on { background: var(--brand); color: #FFFFFF; }
 .seg > .on:hover { color: #FFFFFF; }
