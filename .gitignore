@@ -1,0 +1,7 @@
+.env
+.env.*
+*.rtf
+.DS_Store
+__pycache__/
+node_modules/
+tests/screenshots/
