@@ -4,7 +4,8 @@ import { esc } from "./ui.js";
 import { fmtScore, scoreClass } from "./format.js";
 import { limitPoints, bbox } from "./geo.js";
 
-const MOSCOW = { lat: 55.7558, lon: 37.6176 };
+export const MOSCOW = { lat: 55.7558, lon: 37.6176 };
+const MAX_PINS = 300;
 let loading = null;
 
 export const mapAvailable = () => Boolean(CONFIG.YANDEX_KEY);
@@ -49,23 +50,35 @@ function pinHtml(p, selected) {
 }
 
 // center: {lat, lon} to centre on it, or null to fit all points.
+// At most 300 pins at a time: the ones nearest the middle of the map, picked again after every move.
 export async function mountMap(el, { points, center = null, zoom = 15, selected = null, onPick = null }) {
   const ymaps = await loadYmaps();
-  const shown = limitPoints(points, center, 300);
-  const first = center || shown[0] || MOSCOW;
+  const first = center || limitPoints(points, null, MAX_PINS)[0] || MOSCOW;
   const map = new ymaps.Map(el, { center: [first.lat, first.lon], zoom, controls: [] },
     { suppressMapOpenBlock: true, yandexMapDisablePoiInteractivity: true });
   const layouts = new Map();
-  for (const p of shown) {
-    const html = pinHtml(p, selected);
-    if (!layouts.has(html)) layouts.set(html, ymaps.templateLayoutFactory.createClass(html));
-    const mark = new ymaps.Placemark([p.lat, p.lon], {}, {
-      iconLayout: layouts.get(html),
-      iconShape: { type: "Circle", coordinates: [0, 0], radius: 20 },
-    });
-    if (onPick) mark.events.add("click", () => onPick(p.id));
-    map.geoObjects.add(mark);
+  function pins(around) {
+    const shown = limitPoints(points, around, MAX_PINS);
+    map.geoObjects.removeAll();
+    for (const p of shown) {
+      const html = pinHtml(p, selected);
+      if (!layouts.has(html)) layouts.set(html, ymaps.templateLayoutFactory.createClass(html));
+      const mark = new ymaps.Placemark([p.lat, p.lon], {}, {
+        iconLayout: layouts.get(html),
+        iconShape: { type: "Circle", coordinates: [0, 0], radius: 20 },
+      });
+      if (onPick) mark.events.add("click", () => onPick(p.id));
+      map.geoObjects.add(mark);
+    }
+    return shown;
   }
-  if (!center && shown.length > 1) map.setBounds(bbox(shown), { checkZoomRange: true, zoomMargin: 48 });
+  const shown = pins(center || first);
+  if (points.length > MAX_PINS) {
+    map.events.add("boundschange", () => {
+      const [lat, lon] = map.getCenter();
+      pins({ lat, lon });
+    });
+  }
+  if (!center && points.length <= MAX_PINS && shown.length > 1) map.setBounds(bbox(shown), { checkZoomRange: true, zoomMargin: 48 });
   return { destroy: () => map.destroy() };
 }

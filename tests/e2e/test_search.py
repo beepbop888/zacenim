@@ -96,6 +96,22 @@ class SearchTest(AppTest):
         self.page.click("[data-view='list']")
         self.page.wait_for_function("() => window.__map.markers === 0")
 
+    def test_map_before_any_search_shows_moscow_and_follows_the_map(self):
+        self.use_map_key()
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_function("() => window.__map && window.__map.markers === 300")
+        self.assertNotIn("Начни вводить", self.text("#results"))
+        lat, lon = self.page.evaluate("window.__map.center")
+        self.assertTrue(abs(lat - 55.7558) < 0.01 and abs(lon - 37.6176) < 0.01, (lat, lon))
+        self.shot("search-map-idle")
+        # Drag the map to Курская: the pins become the places around there.
+        self.page.evaluate("window.__map.move(55.7586, 37.6611)")
+        self.page.wait_for_function("() => { const f = window.__map.first; return f && Math.abs(f[0] - 55.7586) < 0.01 && Math.abs(f[1] - 37.6611) < 0.01; }")
+        self.assertEqual(self.page.evaluate("window.__map.markers"), 300)
+        self.page.locator(".pin").first.dispatch_event("click")
+        self.page.wait_for_selector("#picked .row")
+
     def test_place_names_are_text_not_html(self):
         self.inject_venue(["n999999999", '<img src=x onerror="window.__xss=1">', "restaurant", '"><b>жирный</b>',
                            55.765, 37.638, 0, 100, "", "", ""])

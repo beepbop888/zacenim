@@ -43,11 +43,13 @@ export function buildIndex(rows) {
 
 const startsWord = (hay, token) => hay.startsWith(token) || hay.includes(` ${token}`);
 
-export function query(index, { text = "", station = null, walk = null, kind = "all" } = {}) {
+// all: true gives every place of the kind (the map before any search), in data order.
+export function query(index, { text = "", station = null, walk = null, kind = "all", all = false } = {}) {
   const q = normalize(text);
   const tokens = q ? q.split(" ") : [];
-  if (!tokens.length && station === null) return [];
   const kinds = KIND_GROUPS[kind] || null;
+  if (all) return index.filter((e) => !kinds || kinds.includes(e.kind)).map((e) => e.i);
+  if (!tokens.length && station === null) return [];
   const maxM = walk ? walk * 80 : Infinity;
   const hits = [];
   for (const e of index) {

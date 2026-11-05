@@ -48,3 +48,12 @@ test("station and walking time filter, sorted by distance", () => {
 test("kind group filters", () => {
   assert.deepEqual(query(index, { station: 0, walk: 10, kind: "cafe" }), [3]);
 });
+
+test("all: every place of the kind, for the map before any search", async () => {
+  const { query: q } = await import("../../js/search.js");
+  const idx = [{ i: 0, kind: "restaurant", name: "а", alt: "", cuisine: "", st: 0, m: 100 },
+    { i: 1, kind: "bar", name: "б", alt: "", cuisine: "", st: 0, m: 100 }];
+  assert.deepEqual(q(idx, { all: true }), [0, 1]);
+  assert.deepEqual(q(idx, { all: true, kind: "bar" }), [1]);
+  assert.deepEqual(q(idx, {}), []);
+});

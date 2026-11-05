@@ -2,7 +2,7 @@
 import { query, normalize } from "../search.js";
 import { esc, ICON, chip, dot, placeRow, emptyState } from "../ui.js";
 import { plural } from "../format.js";
-import { mapAvailable, mapNote, mountMap } from "../map.js";
+import { mapAvailable, mapNote, mountMap, MOSCOW } from "../map.js";
 
 const KINDS = [["all", "Все"], ["rest", "Рестораны"], ["bar", "Бары"], ["cafe", "Кофейни"], ["fast", "Быстро"]];
 const POPULAR = ["Чистые пруды", "Китай-город", "Маяковская", "Курская", "Новослободская", "Тверская"];
@@ -53,13 +53,17 @@ export default function search(ctx) {
     map = null;
     const out = el.querySelector("#results");
     const count = el.querySelector("#count");
-    if (!s.text.trim() && s.station === null) {
+    const browsing = !s.text.trim() && s.station === null;
+    if (browsing && s.view === "list") {
       count.textContent = "";
       out.innerHTML = idle();
       return;
     }
-    const found = query(ctx.data.index, { text: s.text, station: s.station, walk: s.station === null ? null : s.walk, kind: s.kind });
-    count.textContent = found.length ? `Нашли ${found.length} ${plural(found.length, "место", "места", "мест")}` : "";
+    // On the map with no search yet: every place of the chosen kind, starting from the centre of Moscow.
+    const found = browsing
+      ? query(ctx.data.index, { text: "", station: null, walk: null, kind: s.kind, all: true })
+      : query(ctx.data.index, { text: s.text, station: s.station, walk: s.station === null ? null : s.walk, kind: s.kind });
+    count.textContent = browsing ? "" : found.length ? `Нашли ${found.length} ${plural(found.length, "место", "места", "мест")}` : "";
     const top = suggestions();
     if (!found.length) {
       out.innerHTML = top + emptyState("Ничего не нашли", "Попробуй другое слово, станцию или время пешком.");
@@ -76,7 +80,7 @@ export default function search(ctx) {
     }
     out.innerHTML = `${top}<div class="map" id="map"></div><div id="picked"></div>`;
     const points = found.map((i) => rows[i]).map((r) => ({ id: r[0], name: r[1], lat: r[4], lon: r[5], score: score(r[0]) }));
-    const center = s.station === null ? null : { lat: stations[s.station][2], lon: stations[s.station][3] };
+    const center = browsing ? MOSCOW : s.station === null ? null : { lat: stations[s.station][2], lon: stations[s.station][3] };
     try {
       const m = await mountMap(out.querySelector("#map"), {
         points,

@@ -27,7 +27,9 @@ SEED_TIPS = ("try { for (const p of ['tgcs_', 'zc_']) { if (!localStorage.getIte
 NO_MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "", VERSION: "test" };'
 MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "test-key", VERSION: "test" };'
 YMAPS_STUB = """
-window.__map = { maps: 0, markers: 0, fits: 0, first: null,
+window.__map = { maps: 0, markers: 0, fits: 0, first: null, center: null, live: null,
+  // Tests call this to drag the map: it moves the centre and fires "boundschange" like Yandex does.
+  move(lat, lon) { const m = window.__map.live; m.center = [lat, lon]; window.__map.center = m.center; m.moved.forEach((f) => f()); },
   key: new URL(document.currentScript.src).searchParams.get("apikey") };
 window.ymaps = {
   ready(cb) { cb(); },
@@ -41,8 +43,13 @@ window.ymaps = {
     }
   },
   Map: class {
-    constructor(el) {
+    constructor(el, state) {
       window.__map.maps += 1;
+      window.__map.live = this;
+      this.center = state.center;
+      window.__map.center = state.center;
+      this.moved = [];
+      this.events = { add: (name, f) => { if (name === "boundschange") this.moved.push(f); } };
       this.nodes = [];
       this.geoObjects = { add: (pm) => {
         const w = document.createElement("div");
@@ -52,8 +59,14 @@ window.ymaps = {
         this.nodes.push(w);
         window.__map.markers += 1;
         window.__map.first = window.__map.first || pm.coords;
+      }, removeAll: () => {
+        this.nodes.forEach((n) => n.remove());
+        window.__map.markers -= this.nodes.length;
+        this.nodes = [];
+        window.__map.first = null;
       } };
     }
+    getCenter() { return this.center; }
     setBounds() { window.__map.fits += 1; }
     destroy() { this.nodes.forEach((n) => n.remove()); window.__map.markers -= this.nodes.length; }
   },
