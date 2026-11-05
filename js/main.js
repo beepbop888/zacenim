@@ -17,6 +17,7 @@ route("/places", () => import("./screens/places.js"));
 route("/post/:id", () => import("./screens/post.js"));
 route("/compose", () => import("./screens/compose.js"));
 route("/compose/:place", () => import("./screens/compose.js"));
+route("/book/:id", () => import("./screens/book.js"));
 
 const screen = document.getElementById("screen");
 
