@@ -12,6 +12,7 @@ route("/feed", () => import("./screens/feed.js"));
 route("/about", () => import("./screens/about.js"));
 route("/search", () => import("./screens/search.js"));
 route("/place/:id", () => import("./screens/place.js"));
+route("/rate/:id", () => import("./screens/rate.js"));
 
 const screen = document.getElementById("screen");
 
