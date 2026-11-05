@@ -1,4 +1,4 @@
-// Rating a place, Beli-style: «Пойдёшь сюда ещё раз?», then «лучше или хуже» by halving the list.
+// Rating a place: «Пойдёшь сюда ещё раз?», then «лучше или хуже» by halving the list.
 import { esc, scoreBadge, metroLine, notFound } from "../ui.js";
 import { LEAGUE_NAMES, leagueOf, removeRating, startInsert, pivot, answer, maxSteps, scoreAt } from "../rating.js";
 

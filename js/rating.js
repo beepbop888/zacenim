@@ -1,4 +1,4 @@
-// Ranking maths, Beli-style: an answer group, then binary insertion. Pure functions.
+// Ranking maths: an answer group, then binary insertion. Pure functions.
 
 export const LEAGUE_NAMES = { rest: "Рестораны", bar: "Бары", cafe: "Кофейни", fast: "Быстро" };
 export const GROUPS = ["fire", "ok", "miss"];

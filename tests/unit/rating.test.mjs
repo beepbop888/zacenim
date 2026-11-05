@@ -20,7 +20,7 @@ test("scores spread over the answer range, rounding .x5 up", () => {
   assert.equal(scoreAt("miss", 0, 1), 1.7);
 });
 
-test("comparisons needed grow like Beli's", () => {
+test("comparisons needed grow with the log of the list", () => {
   assert.deepEqual([0, 1, 2, 3, 7, 10, 100].map(maxSteps), [0, 1, 2, 2, 3, 4, 7]);
 });
 
