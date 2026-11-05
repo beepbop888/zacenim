@@ -8,6 +8,13 @@ export const MOSCOW = { lat: 55.7558, lon: 37.6176 };
 const MAX_PINS = 300;
 let loading = null;
 
+// Makes a box reach from where it starts down to the tab bar, at least 320 px tall.
+export function fillToTabbar(box) {
+  const bar = document.getElementById("tabbar");
+  const bottom = bar && !bar.hidden ? bar.getBoundingClientRect().top : window.innerHeight;
+  box.style.height = `${Math.max(320, Math.round(bottom - box.getBoundingClientRect().top))}px`;
+}
+
 export const mapAvailable = () => Boolean(CONFIG.YANDEX_KEY);
 
 export const mapNote = (text = "Карта пока не подключена. Посмотри места списком.") =>
@@ -57,21 +64,38 @@ export async function mountMap(el, { points, center = null, zoom = 15, selected 
   const map = new ymaps.Map(el, { center: [first.lat, first.lon], zoom, controls: [] },
     { suppressMapOpenBlock: true, yandexMapDisablePoiInteractivity: true });
   const layouts = new Map();
+  const layout = (p) => {
+    const html = pinHtml(p, selected);
+    if (!layouts.has(html)) layouts.set(html, ymaps.templateLayoutFactory.createClass(html));
+    return layouts.get(html);
+  };
+  let marks = new Map(); // id -> [placemark, point]
+  // Highlights one pin (or none) and tells the screen.
+  function select(id) {
+    const before = selected;
+    selected = id;
+    for (const pid of [before, id]) {
+      const hit = pid && marks.get(pid);
+      if (hit) hit[0].options.set("iconLayout", layout(hit[1]));
+    }
+    if (onPick) onPick(id);
+  }
   function pins(around) {
     const shown = limitPoints(points, around, MAX_PINS);
     map.geoObjects.removeAll();
+    marks = new Map();
     for (const p of shown) {
-      const html = pinHtml(p, selected);
-      if (!layouts.has(html)) layouts.set(html, ymaps.templateLayoutFactory.createClass(html));
       const mark = new ymaps.Placemark([p.lat, p.lon], {}, {
-        iconLayout: layouts.get(html),
+        iconLayout: layout(p),
         iconShape: { type: "Circle", coordinates: [0, 0], radius: 20 },
       });
-      if (onPick) mark.events.add("click", () => onPick(p.id));
+      if (onPick) mark.events.add("click", () => select(p.id));
+      marks.set(p.id, [mark, p]);
       map.geoObjects.add(mark);
     }
     return shown;
   }
+  if (onPick) map.events.add("click", () => select(null));
   const shown = pins(center || first);
   if (points.length > MAX_PINS) {
     map.events.add("boundschange", () => {

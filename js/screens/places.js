@@ -1,7 +1,7 @@
 // «Мои места»: your ranking by league and the «Хочу» list, as a list or on the map.
 import { esc, ICON, chip, tabs, placeRow, emptyState } from "../ui.js";
 import { LEAGUE_NAMES, leagueList } from "../rating.js";
-import { mapAvailable, mapNote, mountMap } from "../map.js";
+import { mapAvailable, mapNote, mountMap, fillToTabbar } from "../map.js";
 
 export default function places(ctx) {
   const p = ctx.places;
@@ -50,14 +50,17 @@ export default function places(ctx) {
       body.innerHTML = mapNote();
       return;
     }
-    body.innerHTML = '<div class="map" id="map"></div><div id="picked"></div>';
+    body.innerHTML = '<div class="map-wrap"><div class="map" id="map"></div><div class="map-card" id="picked" hidden></div></div>';
+    fillToTabbar(body.querySelector(".map-wrap"));
     const points = list.map((x) => ({ id: x.row[0], name: x.row[1], lat: x.row[4], lon: x.row[5], score: x.score }));
     try {
       const m = await mountMap(body.querySelector("#map"), {
         points,
         onPick: (id) => {
-          const x = list.find((y) => y.row[0] === id);
-          body.querySelector("#picked").innerHTML = `<div class="card">${placeRow(x.row, stations, { score: x.score, rank: x.rank })}</div>`;
+          const x = id && list.find((y) => y.row[0] === id);
+          const card = body.querySelector("#picked");
+          card.hidden = !x;
+          card.innerHTML = x ? placeRow(x.row, stations, { score: x.score, rank: x.rank }) : "";
         },
       });
       if (token === seq) map = m;

@@ -29,7 +29,9 @@ MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_
 YMAPS_STUB = """
 window.__map = { maps: 0, markers: 0, fits: 0, first: null, center: null, live: null,
   // Tests call this to drag the map: it moves the centre and fires "boundschange" like Yandex does.
-  move(lat, lon) { const m = window.__map.live; m.center = [lat, lon]; window.__map.center = m.center; m.moved.forEach((f) => f()); },
+  move(lat, lon) { const m = window.__map.live; m.center = [lat, lon]; window.__map.center = m.center; (m.on.boundschange || []).forEach((f) => f()); },
+  // A tap on the map itself, not on a pin.
+  tapMap() { (window.__map.live.on.click || []).forEach((f) => f()); },
   key: new URL(document.currentScript.src).searchParams.get("apikey") };
 window.ymaps = {
   ready(cb) { cb(); },
@@ -40,6 +42,7 @@ window.ymaps = {
       this.layout = opts.iconLayout;
       this.handlers = [];
       this.events = { add: (name, f) => this.handlers.push(f) };
+      this.options = { set: (k, v) => { if (k === "iconLayout") { this.layout = v; if (this.node) this.node.innerHTML = v; } } };
     }
   },
   Map: class {
@@ -48,13 +51,14 @@ window.ymaps = {
       window.__map.live = this;
       this.center = state.center;
       window.__map.center = state.center;
-      this.moved = [];
-      this.events = { add: (name, f) => { if (name === "boundschange") this.moved.push(f); } };
+      this.on = {};
+      this.events = { add: (name, f) => { (this.on[name] = this.on[name] || []).push(f); } };
       this.nodes = [];
       this.geoObjects = { add: (pm) => {
         const w = document.createElement("div");
         w.innerHTML = pm.layout;
-        w.firstElementChild.addEventListener("click", () => pm.handlers.forEach((f) => f()));
+        pm.node = w;
+        w.addEventListener("click", () => pm.handlers.forEach((f) => f()));
         el.append(w);
         this.nodes.push(w);
         window.__map.markers += 1;

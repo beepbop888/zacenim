@@ -50,6 +50,13 @@ class PlacesTest(AppTest):
         self.page.click("[data-view='map']")
         self.page.wait_for_function("() => window.__map && window.__map.markers === 3")
         self.assertEqual(self.page.locator(".pin-score").count(), 3)
+        wrap = self.page.locator(".map-wrap").bounding_box()
+        bar = self.page.locator("#tabbar").bounding_box()
+        self.assertLess(abs(wrap["y"] + wrap["height"] - bar["y"]), 2, (wrap, bar))
+        self.page.locator(".pin").first.dispatch_event("click")
+        self.page.wait_for_selector("#picked .row .rank")
+        self.page.evaluate("window.__map.tapMap()")
+        self.page.wait_for_selector("#picked", state="hidden")
 
     def test_opens_the_first_league_that_has_places(self):
         self.open("/feed")

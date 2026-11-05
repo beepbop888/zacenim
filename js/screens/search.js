@@ -2,7 +2,7 @@
 import { query, normalize } from "../search.js";
 import { esc, ICON, chip, dot, placeRow, emptyState } from "../ui.js";
 import { plural } from "../format.js";
-import { mapAvailable, mapNote, mountMap, MOSCOW } from "../map.js";
+import { mapAvailable, mapNote, mountMap, MOSCOW, fillToTabbar } from "../map.js";
 
 const KINDS = [["all", "Все"], ["rest", "Рестораны"], ["bar", "Бары"], ["cafe", "Кофейни"], ["fast", "Быстро"]];
 const POPULAR = ["Чистые пруды", "Китай-город", "Маяковская", "Курская", "Новослободская", "Тверская"];
@@ -78,7 +78,8 @@ export default function search(ctx) {
       out.innerHTML = top + mapNote();
       return;
     }
-    out.innerHTML = `${top}<div class="map" id="map"></div><div id="picked"></div>`;
+    out.innerHTML = `${top}<div class="map-wrap"><div class="map" id="map"></div><div class="map-card" id="picked" hidden></div></div>`;
+    fillToTabbar(out.querySelector(".map-wrap"));
     const points = found.map((i) => rows[i]).map((r) => ({ id: r[0], name: r[1], lat: r[4], lon: r[5], score: score(r[0]) }));
     const center = browsing ? MOSCOW : s.station === null ? null : { lat: stations[s.station][2], lon: stations[s.station][3] };
     try {
@@ -86,7 +87,9 @@ export default function search(ctx) {
         points,
         center,
         onPick: (id) => {
-          out.querySelector("#picked").innerHTML = `<div class="card">${placeRow(ctx.data.venue(id), stations, { score: score(id) })}</div>`;
+          const card = out.querySelector("#picked");
+          card.hidden = !id;
+          card.innerHTML = id ? placeRow(ctx.data.venue(id), stations, { score: score(id) }) : "";
         },
       });
       if (token === drawSeq) map = m;

@@ -112,6 +112,26 @@ class SearchTest(AppTest):
         self.page.locator(".pin").first.dispatch_event("click")
         self.page.wait_for_selector("#picked .row")
 
+    def test_the_map_fills_the_screen_and_a_tapped_pin_opens_a_card_on_it(self):
+        self.use_map_key()
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_function("() => window.__map && window.__map.markers === 300")
+        wrap = self.page.locator(".map-wrap").bounding_box()
+        bar = self.page.locator("#tabbar").bounding_box()
+        self.assertLess(abs(wrap["y"] + wrap["height"] - bar["y"]), 2, (wrap, bar))
+        self.assertTrue(self.page.is_hidden("#picked"))
+        self.page.locator(".pin").nth(5).dispatch_event("click")
+        self.page.wait_for_selector("#picked .row")
+        self.assertEqual(self.page.locator(".pin.on").count(), 1)
+        card = self.page.locator("#picked").bounding_box()
+        self.assertLessEqual(card["y"] + card["height"], bar["y"])
+        self.assertGreaterEqual(card["y"], wrap["y"])
+        self.shot("search-map-picked")
+        self.page.evaluate("window.__map.tapMap()")
+        self.page.wait_for_selector("#picked", state="hidden")
+        self.assertEqual(self.page.locator(".pin.on").count(), 0)
+
     def test_place_names_are_text_not_html(self):
         self.inject_venue(["n999999999", '<img src=x onerror="window.__xss=1">', "restaurant", '"><b>жирный</b>',
                            55.765, 37.638, 0, 100, "", "", ""])

@@ -132,15 +132,19 @@ button.info-row { width: 100%; padding: 0; background: none; border-width: 0 0 1
 
 .map { position: relative; width: calc(100% + 32px); height: 440px; margin: 0 -16px; overflow: hidden; background: var(--surf); }
 .map [class*="-ground-pane"] { filter: saturate(0.3) brightness(1.04); }
+.map-wrap { position: relative; margin: 0 -16px -24px; }
+.map-wrap .map { width: 100%; height: 100%; margin: 0; }
+.map-card { position: absolute; left: 12px; right: 12px; bottom: 40px; z-index: 5; padding: 2px 14px; border-radius: 16px; background: var(--bg); box-shadow: 0 2px 6px rgba(9, 22, 26, 0.12), 0 8px 24px rgba(9, 22, 26, 0.16); }
+.map-card[hidden] { display: none; }
 .map-small { width: 100%; height: 160px; margin: 0; border-radius: 16px; pointer-events: none; }
 .map-note { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; border-radius: 16px; background: var(--surf); }
 .pin { position: absolute; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; transform: translate(-50%, -50%); cursor: pointer; }
-.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #FFFFFF; background: var(--brand); box-shadow: 0 1px 3px rgba(9, 22, 26, 0.35); }
+.pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #FFFFFF; background: var(--brand); box-shadow: 0 1px 3px rgba(9, 22, 26, 0.35); }
 .pin-score { min-width: 38px; height: 28px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--line2); border-radius: 14px; background: #FFFFFF; font: 600 13px/1 var(--sans); font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgba(9, 22, 26, 0.2); }
 .pin-score.good { color: var(--good); }
 .pin-score.mid { color: var(--mid); }
 .pin-score.bad { color: var(--bad); }
-.pin.on .pin-dot { width: 22px; height: 22px; }
+.pin.on .pin-dot { width: 22px; height: 22px; border-width: 3px; box-shadow: 0 0 0 3px rgba(14, 60, 70, 0.25), 0 2px 6px rgba(9, 22, 26, 0.4); }
 .pin.on .pin-score { border-color: var(--brand); }
 
 .chat { display: flex; flex-direction: column; gap: 10px; margin: 0 -16px; padding: 14px 12px; background: #EEF1F1; }
