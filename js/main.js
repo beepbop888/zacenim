@@ -18,6 +18,10 @@ route("/post/:id", () => import("./screens/post.js"));
 route("/compose", () => import("./screens/compose.js"));
 route("/compose/:place", () => import("./screens/compose.js"));
 route("/book/:id", () => import("./screens/book.js"));
+route("/remind/:id", () => import("./screens/remind.js"));
+route("/plans", () => import("./screens/plans.js"));
+route("/group", () => import("./screens/group.js"));
+route("/chat", () => import("./screens/chat.js"));
 
 const screen = document.getElementById("screen");
 
