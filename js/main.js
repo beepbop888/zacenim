@@ -14,6 +14,9 @@ route("/search", () => import("./screens/search.js"));
 route("/place/:id", () => import("./screens/place.js"));
 route("/rate/:id", () => import("./screens/rate.js"));
 route("/places", () => import("./screens/places.js"));
+route("/post/:id", () => import("./screens/post.js"));
+route("/compose", () => import("./screens/compose.js"));
+route("/compose/:place", () => import("./screens/compose.js"));
 
 const screen = document.getElementById("screen");
 
