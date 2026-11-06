@@ -5,5 +5,5 @@ export const CONFIG = {
   YANDEX_KEY: "946d02bd-cb64-49d1-b2b8-05bcf5183035",
   // Yandex tiles through our server, for phones whose VPN blocks Yandex's tile server.
   TILES: "https://zacenim-api.leonardabramov888.workers.dev/tiles",
-  VERSION: "0.2.4",
+  VERSION: "0.2.5",
 };

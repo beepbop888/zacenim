@@ -32,7 +32,16 @@ export function createStore(primary, fallbackBackend, onFallback = () => {}, onR
   const readAll = async (from) => Promise.all([read(from, "r", null), read(from, "w", []), read(from, "p", []),
     read(from, "c", {}), read(from, "l", []), read(from, "tips", false)]);
 
-  async function save(key, value) {
+  // Saves of one key run one after another: Telegram's storage may finish two writes in either order.
+  const queues = {};
+  function save(key, value) {
+    const run = () => saveNow(key, value);
+    const done = (queues[key] || Promise.resolve()).then(run, run);
+    queues[key] = done.catch(() => {});
+    return done;
+  }
+
+  async function saveNow(key, value) {
     try {
       await storage.saveJSON(key, value);
       if (device && storage !== device) await device.saveJSON(key, value).catch(() => {});
@@ -79,14 +88,16 @@ export function createStore(primary, fallbackBackend, onFallback = () => {}, onR
     isWant(id) { return state.want.includes(id); },
     async toggleWant(id) {
       state.want = toggle(state.want, id);
+      const on = state.want.includes(id);
       await save("w", state.want);
-      return state.want.includes(id);
+      return on;
     },
     isLiked(postId) { return state.likes.includes(postId); },
     async toggleLike(postId) {
       state.likes = toggle(state.likes, postId);
+      const on = state.likes.includes(postId);
       await save("l", state.likes);
-      return state.likes.includes(postId);
+      return on;
     },
     async addPost(post) {
       state.posts = [post, ...state.posts].slice(0, 100);

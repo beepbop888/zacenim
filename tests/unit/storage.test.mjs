@@ -119,3 +119,22 @@ test("Telegram storage that never answers gives up", async () => {
   const silent = { getItem() {}, setItem() {}, removeItems() {} };
   await assert.rejects(cloudBackend(silent, 20).get("r_n"), /timeout/);
 });
+
+test("two quick «Хочу» taps leave storage matching the screen", async () => {
+  // Telegram's storage answers in any order: here the first write is the slowest.
+  const backend = memoryBackend();
+  const set = backend.set.bind(backend);
+  let calls = 0;
+  backend.set = async (k, v) => {
+    calls += 1;
+    if (calls === 1) await new Promise((r) => setTimeout(r, 30));
+    return set(k, v);
+  };
+  const store = createStore(backend, null);
+  await store.load();
+  const [first, second] = await Promise.all([store.toggleWant("n2"), store.toggleWant("n2")]);
+  assert.deepEqual([first, second], [true, false]);
+  const again = createStore(backend, null);
+  await again.load();
+  assert.equal(again.isWant("n2"), false);
+});
