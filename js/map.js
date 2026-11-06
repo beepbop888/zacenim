@@ -10,7 +10,46 @@ let loading = null;
 let report = () => {};
 // report({ok, detail}) is told once per map: whether Yandex loaded and how many map tiles drew 5 s later.
 export const setMapReporter = (fn) => { report = fn; };
-const CHECK_AFTER_MS = 5000;
+const CHECK_AFTER_MS = 4000; // after we know where the tiles come from
+
+// Some VPNs let Yandex's map code through but block its tile server. One tile is tried directly;
+// if it fails, the map draws Yandex tiles fetched through our server (CONFIG.TILES) instead.
+const DIRECT_TILE = "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x=309&y=160&z=9&scale=1&lang=ru_RU";
+const PROBE_MS = 4000;
+const OUR_TYPE = "zc#map";
+const HINT = "zcTilesViaUs"; // last time Yandex's tiles were blocked: start with ours
+let direct = null; // Promise<boolean>, once per app run
+const readHint = () => { try { return localStorage.getItem(HINT) === "1"; } catch { return false; } };
+const saveHint = (blocked) => { try { if (blocked) localStorage.setItem(HINT, "1"); else localStorage.removeItem(HINT); } catch { /* private mode */ } };
+
+function directTilesWork() {
+  if (!direct) {
+    direct = new Promise((resolve) => {
+      const img = new Image();
+      const done = (ok) => { clearTimeout(timer); img.onload = img.onerror = null; resolve(ok); };
+      const timer = setTimeout(() => done(false), PROBE_MS);
+      img.onload = () => done(img.naturalWidth > 0);
+      img.onerror = () => done(false);
+      img.src = DIRECT_TILE;
+    }).then((ok) => { saveHint(!ok); return ok; });
+  }
+  return direct;
+}
+
+function ourType(ymaps) {
+  if (!ymaps.mapType.storage.get(OUR_TYPE)) {
+    const scale = (window.devicePixelRatio || 1) > 1 ? 2 : 1;
+    const base = CONFIG.TILES || `${CONFIG.API_BASE}/tiles`;
+    ymaps.layer.storage.add("zc#tiles", function ZcTiles() {
+      const layer = new ymaps.Layer((tile, zoom) => `${base}/${zoom}/${tile[0]}/${tile[1]}?s=${scale}`, { tileTransparent: false });
+      layer.getCopyrights = () => ymaps.vow.resolve(["© Яндекс"]);
+      layer.getZoomRange = () => ymaps.vow.resolve([0, 19]);
+      return layer;
+    });
+    ymaps.mapType.storage.add(OUR_TYPE, new ymaps.MapType("Заценим", ["zc#tiles"]));
+  }
+  return OUR_TYPE;
+}
 
 // Makes a box reach from where it starts down to the tab bar, at least 320 px tall.
 export function fillToTabbar(box) {
@@ -74,7 +113,9 @@ export async function mountMap(el, { points, center = null, zoom = 15, selected 
   }
   const loadedIn = ms();
   const first = center || limitPoints(points, null, MAX_PINS)[0] || MOSCOW;
-  const map = new ymaps.Map(el, { center: [first.lat, first.lon], zoom, controls: [] },
+  const probe = directTilesWork();
+  const startOurs = readHint();
+  const map = new ymaps.Map(el, { center: [first.lat, first.lon], zoom, controls: [], type: startOurs ? ourType(ymaps) : "yandex#map" },
     { suppressMapOpenBlock: true, yandexMapDisablePoiInteractivity: true });
   const layouts = new Map();
   const layout = (p) => {
@@ -118,14 +159,23 @@ export async function mountMap(el, { points, center = null, zoom = 15, selected 
   }
   if (!center && points.length <= MAX_PINS && shown.length > 1) map.setBounds(bbox(shown), { checkZoomRange: true, zoomMargin: 48 });
   let gone = false;
-  const check = setTimeout(() => {
+  let check = null;
+  let via = startOurs ? "our server" : "Yandex";
+  probe.then((ok) => {
+    if (gone) return;
+    via = ok ? "Yandex" : "our server";
+    const want = ok ? "yandex#map" : ourType(ymaps);
+    if (map.getType() !== want) map.setType(want);
+    check = setTimeout(checkTiles, CHECK_AFTER_MS);
+  });
+  function checkTiles() {
     if (gone) return;
     const imgs = [...el.querySelectorAll("img")];
     const okImgs = imgs.filter((i) => i.complete && i.naturalWidth > 0).length;
     const canvases = el.querySelectorAll("canvas").length;
     const drawn = okImgs + canvases;
-    report({ ok: drawn > 0, detail: `loaded in ${loadedIn} ms; box ${el.clientWidth}x${el.clientHeight}; tiles ${drawn} (img ${okImgs}/${imgs.length}, canvas ${canvases}); pins ${shown.length}` });
-  }, CHECK_AFTER_MS);
+    report({ ok: drawn > 0, detail: `loaded in ${loadedIn} ms; tiles ${via === "Yandex" ? "from Yandex" : "via our server"}; box ${el.clientWidth}x${el.clientHeight}; tiles ${drawn} (img ${okImgs}/${imgs.length}, canvas ${canvases}); pins ${shown.length}` });
+  }
   return {
     destroy: () => {
       gone = true;

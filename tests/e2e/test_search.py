@@ -145,6 +145,35 @@ class SearchTest(AppTest):
         self.assertIn("tiles 0", log["detail"])
         self.assertFalse(log["ok"])  # the stub draws no tiles
 
+    def test_blocked_yandex_tiles_come_through_our_server(self):
+        self.use_map_key(tiles=False)
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_function("() => window.__map && window.__map.type === 'zc#map'")
+        url = self.page.evaluate("""() => {
+            const Layer = ymaps.layer.storage.get(ymaps.mapType.storage.get('zc#map').layers[0]);
+            const layer = new Layer();
+            return typeof layer.url === 'function' ? layer.url([619, 321], 10) : layer.url;
+        }""")
+        self.assertEqual(url, "http://127.0.0.1:8787/tiles/10/619/321?s=2")
+        self.wait_for(lambda: self.api.logs, ms=9000)
+        self.assertIn("tiles via our server", self.api.logs[0]["detail"])
+        # Next time the app starts with our tiles at once, no wait for Yandex to fail again.
+        self.page.reload()
+        self.page.wait_for_selector("body[data-ready='1']")
+        self.page.evaluate("() => { location.hash = '#/search'; }")
+        self.page.click("[data-view='map']")
+        self.page.wait_for_function("() => window.__map && window.__map.maps === 1")
+        self.assertEqual(self.page.evaluate("window.__map.startType"), "zc#map")
+
+    def test_tiles_come_from_yandex_when_they_load(self):
+        self.use_map_key(tiles=True)
+        self.open("/search")
+        self.page.click("[data-view='map']")
+        self.wait_for(lambda: self.api.logs, ms=9000)
+        self.assertIn("tiles from Yandex", self.api.logs[0]["detail"])
+        self.assertEqual(self.page.evaluate("window.__map.type"), "yandex#map")
+
     def test_a_blocked_map_says_so_and_reports_it(self):
         self.context.route("**/config.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=MAP_CONFIG))
         self.context.route("https://api-maps.yandex.ru/**", lambda r: r.abort("addressunreachable"))

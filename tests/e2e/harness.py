@@ -25,16 +25,26 @@ CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Aut
 SEED_TIPS = ("try { for (const p of ['tgcs_', 'zc_']) { if (!localStorage.getItem(p + 'tips_n')) {"
              " localStorage.setItem(p + 'tips_n', '1'); localStorage.setItem(p + 'tips_0', 'true'); } } } catch (e) {}")
 NO_MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "", VERSION: "test" };'
-MAP_CONFIG = 'export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "test-key", VERSION: "test" };'
+MAP_CONFIG = ('export const CONFIG = { API_BASE: "http://127.0.0.1:8787", YANDEX_KEY: "test-key", VERSION: "test",'
+              ' TILES: "http://127.0.0.1:8787/tiles" };')
+# 1x1 PNG, answered for Yandex's tile server when a test says tiles load
+PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                    "1f15c4890000000d49444154789c6360000002000100e221bc330000000049454e44ae426082")
 YMAPS_STUB = """
-window.__map = { maps: 0, markers: 0, fits: 0, first: null, center: null, live: null,
+window.__map = { maps: 0, markers: 0, fits: 0, first: null, center: null, live: null, type: null, startType: null, layers: {},
   // Tests call this to drag the map: it moves the centre and fires "boundschange" like Yandex does.
   move(lat, lon) { const m = window.__map.live; m.center = [lat, lon]; window.__map.center = m.center; (m.on.boundschange || []).forEach((f) => f()); },
   // A tap on the map itself, not on a pin.
   tapMap() { (window.__map.live.on.click || []).forEach((f) => f()); },
   key: new URL(document.currentScript.src).searchParams.get("apikey") };
+const __ymStore = () => { const m = new Map(); return { add: (k, v) => { m.set(k, v); }, get: (k) => m.get(k) }; };
 window.ymaps = {
   ready(cb) { cb(); },
+  vow: { resolve: (v) => Promise.resolve(v) },
+  Layer: class { constructor(url, opts) { this.url = url; this.opts = opts; } },
+  MapType: class { constructor(name, layers) { this.name = name; this.layers = layers; } },
+  layer: { storage: __ymStore() },
+  mapType: { storage: __ymStore() },
   templateLayoutFactory: { createClass: (html) => html },
   Placemark: class {
     constructor(coords, props, opts) {
@@ -51,6 +61,9 @@ window.ymaps = {
       window.__map.live = this;
       this.center = state.center;
       window.__map.center = state.center;
+      this.type = state.type || "yandex#map";
+      window.__map.type = this.type;
+      window.__map.startType = this.type;
       this.on = {};
       this.events = { add: (name, f) => { (this.on[name] = this.on[name] || []).push(f); } };
       this.nodes = [];
@@ -71,6 +84,12 @@ window.ymaps = {
       } };
     }
     getCenter() { return this.center; }
+    getType() { return this.type; }
+    setType(t) {
+      if (t !== "yandex#map" && !ymaps.mapType.storage.get(t)) throw new Error("unknown map type " + t);
+      this.type = t;
+      window.__map.type = t;
+    }
     setBounds() { window.__map.fits += 1; }
     destroy() { this.nodes.forEach((n) => n.remove()); window.__map.markers -= this.nodes.length; }
   },
@@ -282,7 +301,11 @@ class AppTest(unittest.TestCase):
             route.fulfill(response=response, json=data)
         self.context.route("**/data/venues.json", handle)
 
-    def use_map_key(self):
+    def use_map_key(self, tiles=True):
+        """The Yandex stub instead of the real map. tiles=False: Yandex's tile server is unreachable, as behind some VPNs."""
+        self.context.route("https://core-renderer-tiles.maps.yandex.net/**",
+                           (lambda r: r.fulfill(status=200, content_type="image/png", body=PNG)) if tiles
+                           else (lambda r: r.abort("addressunreachable")))
         self.context.route("**/config.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=MAP_CONFIG))
         self.context.route("https://api-maps.yandex.ru/**",
                            lambda r: r.fulfill(status=200, content_type="application/javascript", body=YMAPS_STUB))
