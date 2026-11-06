@@ -44,7 +44,7 @@ test("store rates, lists and reloads", async () => {
   await store.setTipsDone(true);
   const again = createStore(backend, null);
   await again.load();
-  assert.equal(again.rating("n1").score, 8.4);
+  assert.equal(again.rating("n1").score, 10);
   assert.equal(again.isWant("n2"), true);
   assert.equal(again.state.posts[0].text, "Вкусно");
   assert.equal(again.state.comments.d1[0].text, "Согласен");

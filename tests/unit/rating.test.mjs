@@ -11,13 +11,15 @@ test("leagues by kind", () => {
   assert.equal(leagueOf("unknown"), "rest");
 });
 
-test("scores spread over the answer range, rounding .x5 up", () => {
-  assert.equal(scoreAt("fire", 0, 1), 8.4);
-  assert.equal(scoreAt("fire", 0, 8), 9.8);
-  assert.equal(scoreAt("fire", 2, 8), 9.0);
-  assert.equal(scoreAt("fire", 7, 8), 6.9);
-  assert.equal(scoreAt("ok", 0, 1), 5.0);
-  assert.equal(scoreAt("miss", 0, 1), 1.7);
+test("the best place of an answer gets the top of its range, the rest evenly below", () => {
+  assert.equal(scoreAt("fire", 0, 1), 10.0);
+  assert.deepEqual([0, 1].map((i) => scoreAt("fire", i, 2)), [10.0, 8.4]);
+  assert.deepEqual([0, 1, 2].map((i) => scoreAt("fire", i, 3)), [10.0, 8.9, 7.8]);
+  assert.equal(scoreAt("fire", 0, 8), 10.0);
+  assert.equal(scoreAt("fire", 2, 8), 9.2);
+  assert.equal(scoreAt("fire", 7, 8), 7.1);
+  assert.equal(scoreAt("ok", 0, 1), 6.6);
+  assert.equal(scoreAt("miss", 0, 1), 3.3);
 });
 
 test("comparisons needed grow with the log of the list", () => {
@@ -56,7 +58,7 @@ test("insert, find, re-rate and remove", () => {
   r = insertRating(r, "rest", "fire", "a", 0);
   r = insertRating(r, "rest", "fire", "b", 1);
   r = insertRating(r, "rest", "ok", "c", 0);
-  assert.deepEqual(findRating(r, "b"), { league: "rest", group: "fire", index: 1, n: 2, score: 7.5, place: 2, total: 3 });
+  assert.deepEqual(findRating(r, "b"), { league: "rest", group: "fire", index: 1, n: 2, score: 8.4, place: 2, total: 3 });
   assert.equal(findRating(r, "c").place, 3);
   const before = r;
   r = insertRating(r, "rest", "fire", "c", 0);
@@ -73,6 +75,6 @@ test("all scores: every rated place with its current score", async () => {
   let r = insertRating(emptyRatings(), "rest", "fire", "n1", 0);
   r = insertRating(r, "rest", "fire", "n2", 1);
   r = insertRating(r, "bar", "miss", "n3", 0);
-  assert.deepEqual(allScores(r), { n1: scoreAt("fire", 0, 2), n2: scoreAt("fire", 1, 2), n3: 1.7 });
+  assert.deepEqual(allScores(r), { n1: scoreAt("fire", 0, 2), n2: scoreAt("fire", 1, 2), n3: 3.3 });
   assert.deepEqual(allScores(emptyRatings()), {});
 });

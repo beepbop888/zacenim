@@ -1,8 +1,10 @@
 // Rating a place: «Пойдёшь сюда ещё раз?», then «лучше или хуже» by halving the list.
 import { esc, scoreBadge, metroLine, notFound } from "../ui.js";
-import { LEAGUE_NAMES, leagueOf, removeRating, startInsert, pivot, answer, maxSteps, scoreAt } from "../rating.js";
+import { LEAGUE_NAMES, RANGES, leagueOf, removeRating, startInsert, pivot, answer, maxSteps, scoreAt } from "../rating.js";
+import { fmtScore } from "../format.js";
 
 const ANSWERS = [["fire", "Да, пойду ещё"], ["ok", "Один раз можно"], ["miss", "Больше не пойду"]];
+const GROUP_NAMES = { fire: "Пойду ещё", ok: "Один раз можно", miss: "Больше не пойду" };
 
 export default function rate(ctx, { id }) {
   const row = ctx.data.venue(id);
@@ -37,6 +39,7 @@ export default function rate(ctx, { id }) {
 <h1 class="h1" tabindex="-1">Готово, оценку запомнили</h1>
 ${scoreBadge(r.score, "xl")}
 <p class="muted">${r.place}-е место из ${r.total} в лиге «${esc(LEAGUE_NAMES[r.league])}»</p>
+<p class="muted">У лучшего места в «${GROUP_NAMES[r.group]}» ${fmtScore(RANGES[r.group][1])}, остальные ниже по сравнению.</p>
 </div>
 <button type="button" class="btn btn-primary btn-block" data-action="back">Готово</button>
 <button type="button" class="btn btn-secondary btn-block" data-action="post">Написать пост</button>`;

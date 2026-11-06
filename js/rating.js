@@ -10,9 +10,10 @@ const LEAGUE_OF = { restaurant: "rest", bar: "bar", pub: "bar", biergarten: "bar
 export const leagueOf = (kind) => LEAGUE_OF[kind] || "rest";
 export const round1 = (x) => Math.round(x * 10 + 1e-9) / 10;
 
+// The best place of an answer gets the top of its range (10 for «пойду ещё»); the rest are spaced evenly below.
 export function scoreAt(group, i, n) {
   const [lo, hi] = RANGES[group];
-  return round1(lo + ((hi - lo) * (n - i - 0.5)) / n);
+  return round1(hi - ((hi - lo) * i) / n);
 }
 
 export const maxSteps = (n) => (n === 0 ? 0 : Math.floor(Math.log2(n)) + 1);
